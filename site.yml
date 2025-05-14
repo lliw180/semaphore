@@ -1,52 +1,41 @@
 ---
-- name: Deploy n8n instances using Docker Compose
+- name: Install and Configure n8n Instances
   hosts: all
-  become: true
+  become: yes
   vars:
     n8n_instances:
-      - subdomain: n8n1
-        domain_name: n8n1.sqwacker.com
+      - subdomain: n8n1.sqwacker.net
+        domain_name: n8n1.sqwacker.net
         n8n_port: 5678
-        timezone: Australia/Adelaide
-      - subdomain: n8n2
-        domain_name: n8n2.sqwacker.com
+        timezone: "Australia/Adelaide"
+      - subdomain: n8n2.sqwacker.net
+        domain_name: n8n2.sqwacker.net
         n8n_port: 5679
-        timezone: UTC
+        timezone: "UTC"
 
   tasks:
-    - name: Ensure Docker is installed
-      apt:
-        name: docker.io
-        state: present
-      tags: docker
-
-    - name: Ensure docker-compose is installed
-      apt:
-        name: docker-compose
-        state: present
-      tags: docker
-
-    - name: Create project folders
-      file:
-        path: "/opt/{{ item.subdomain }}"
-        state: directory
-      loop: "{{ n8n_instances }}"
-
     - name: Copy docker-compose template
       template:
         src: docker-compose.yml.j2
-        dest: "/opt/{{ item.subdomain }}/docker-compose.yml"
-      loop: "{{ n8n_instances }}"
+        dest: "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
+      with_items: "{{ n8n_instances }}"
 
-    - name: Stop and remove existing containers
-      docker_compose:
-        project_src: "/opt/{{ item.subdomain }}"
-        state: absent
-      loop: "{{ n8n_instances }}"
-      ignore_errors: true
+    - name: Create directory for n8n container data
+      file:
+        path: "/home/{{ ansible_user }}/n8n-data/{{ item.subdomain }}"
+        state: directory
+      with_items: "{{ n8n_instances }}"
 
-    - name: Deploy docker-compose stack
+    - name: Pull docker images for n8n
+      docker_image:
+        name: "{{ item.subdomain }}"
+        source: pull
+      with_items: "{{ n8n_instances }}"
+
+    - name: Start n8n containers
       docker_compose:
-        project_src: "/opt/{{ item.subdomain }}"
+        project_src: "/home/{{ ansible_user }}/"
+        files:
+          - "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
         state: present
-      loop: "{{ n8n_instances }}"
+      with_items: "{{ n8n_instances }}"
