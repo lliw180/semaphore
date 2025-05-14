@@ -4,5 +4,5 @@
   become: true
   tasks:
      - name: print OS info
-       ansible.bultin.package:
+       ansible.builtin.package:
          name: apache2
