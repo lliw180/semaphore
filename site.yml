@@ -2,7 +2,9 @@
 - name: Install and Configure n8n Instances
   hosts: all
   become: yes
+
   vars:
+    n8n_image: n8nio/n8n:1.92.1
     n8n_instances:
       - subdomain: n8n1.sqwacker.net
         domain_name: n8n1.sqwacker.net
@@ -14,28 +16,30 @@
         timezone: "UTC"
 
   tasks:
-    - name: Copy docker-compose template
-      template:
-        src: docker-compose.yml.j2
-        dest: "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
-      with_items: "{{ n8n_instances }}"
-
-    - name: Create directory for n8n container data
+    - name: Ensure n8n data directories exist
       file:
         path: "/home/{{ ansible_user }}/n8n-data/{{ item.subdomain }}"
         state: directory
-      with_items: "{{ n8n_instances }}"
+        mode: '0755'
+      loop: "{{ n8n_instances }}"
 
-    - name: Pull docker images for n8n
+    - name: Copy docker-compose file for each instance
+      template:
+        src: docker-compose.yml.j2
+        dest: "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
+        mode: '0644'
+      loop: "{{ n8n_instances }}"
+
+    - name: Pull n8n Docker image
       docker_image:
-        name: "{{ item.subdomain }}"
+        name: "{{ n8n_image }}"
         source: pull
-      with_items: "{{ n8n_instances }}"
 
-    - name: Start n8n containers
+    - name: Deploy n8n containers using Docker Compose
       docker_compose:
         project_src: "/home/{{ ansible_user }}/"
         files:
           - "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
         state: present
-      with_items: "{{ n8n_instances }}"
+      loop: "{{ n8n_instances }}"
+
