@@ -1,7 +1,33 @@
 ---
-- hosts: n8n
-  become: true
+- name: Deploy n8n containers
+  hosts: n8n
+  become: yes
+  vars:
+    timezone: "UTC"
   tasks:
-     - name: Print OS info
-       ansible.builtin.package:
-        name: apache2
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure Docker Compose plugin is installed
+      shell: |
+        apt-get install -y docker-compose-plugin
+      args:
+        creates: /usr/libexec/docker/cli-plugins/docker-compose
+
+    - name: Create project directory
+      file:
+        path: /opt/n8n_{{ inventory_hostname }}
+        state: directory
+
+    - name: Copy docker-compose.yml for this host
+      template:
+        src: docker-compose.yml.j2
+        dest: /opt/n8n_{{ inventory_hostname }}/docker-compose.yml
+
+    - name: Launch containers
+      shell: docker compose up -d
+      args:
+        chdir: /opt/n8n_{{ inventory_hostname }}
