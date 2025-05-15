@@ -1,45 +1,7 @@
 ---
-- name: Install and Configure n8n Instances
-  hosts: all
-  become: yes
-
-  vars:
-    n8n_image: n8nio/n8n:1.92.1
-    n8n_instances:
-      - subdomain: n8n1.sqwacker.net
-        domain_name: n8n1.sqwacker.net
-        n8n_port: 5678
-        timezone: "Australia/Adelaide"
-      - subdomain: n8n2.sqwacker.net
-        domain_name: n8n2.sqwacker.net
-        n8n_port: 5679
-        timezone: "UTC"
-
+- hosts: n8n
+  become: true
   tasks:
-    - name: Ensure n8n data directories exist
-      file:
-        path: "/home/{{ ansible_user }}/n8n-data/{{ item.subdomain }}"
-        state: directory
-        mode: '0755'
-      loop: "{{ n8n_instances }}"
-
-    - name: Copy docker-compose file for each instance
-      template:
-        src: docker-compose.yml.j2
-        dest: "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
-        mode: '0644'
-      loop: "{{ n8n_instances }}"
-
-    - name: Pull n8n Docker image
-      docker_image:
-        name: "{{ n8n_image }}"
-        source: pull
-
-    - name: Deploy n8n containers using Docker Compose
-      docker_compose:
-        project_src: "/home/{{ ansible_user }}/"
-        files:
-          - "/home/{{ ansible_user }}/docker-compose-{{ item.subdomain }}.yml"
-        state: present
-      loop: "{{ n8n_instances }}"
-
+     - name: Print OS info
+       ansible.biultin.package:
+        name: apache2
