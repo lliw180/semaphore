@@ -31,6 +31,8 @@
     - name: Set permissions on Docker GPG key
       file:
         path: /etc/apt/keyrings/docker.gpg
+        owner: root
+        group: root
         mode: '0644'
 
     - name: Add Docker APT repository
