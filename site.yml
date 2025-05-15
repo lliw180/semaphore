@@ -22,10 +22,15 @@
         state: directory
         mode: '0755'
 
-    - name: Add Docker's official GPG key
-      get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.gpg
+    - name: Add Docker's official GPG key (dearmored)
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
+
+    - name: Set permissions on Docker GPG key
+      file:
+        path: /etc/apt/keyrings/docker.gpg
         mode: '0644'
 
     - name: Add Docker APT repository
@@ -64,13 +69,15 @@
       file:
         path: /opt/n8n_{{ inventory_hostname }}
         state: directory
+        mode: '0755'
 
-    - name: Copy docker-compose.yml for this host
+    - name: Copy docker-compose.yml template
       template:
         src: docker-compose.yml.j2
         dest: /opt/n8n_{{ inventory_hostname }}/docker-compose.yml
+        mode: '0644'
 
-    - name: Launch containers
-      shell: docker compose up -d
+    - name: Launch n8n containers
+      shell: /usr/bin/docker compose up -d
       args:
         chdir: /opt/n8n_{{ inventory_hostname }}
